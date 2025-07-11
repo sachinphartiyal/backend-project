@@ -332,7 +332,8 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 
     ).select("-password")
 
-    // TODO: delete local temp image
+    // TODO: delete local temp image  // code in file no. 13.
+    // after uploading new image then delete the old image.
 
     return res
         .status(200)
@@ -374,27 +375,33 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 })
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
-    const { username } = req.params
+    const { username } = req.params;
 
     if (!username?.trim()) {
-        throw new ApiError(400, "username is missing")
+        throw new ApiError(400, "username is missing");
     }
 
+    // aggregate pipelines ka return data type array hota hai.
     const channel = await User.aggregate([
+
+        // $match fetches the document named 'username' and $lookup and $project will run only on that document.
         {
             $match: {
                 username: username?.toLowerCase()
             }
         },
+
+        // get subscribers
         {
-            // woh saare channels jis ne subscribe kiya hoga aa jayenge.
             $lookup: {
-                from: "subscriptions",
+                from: "subscriptions", // mongo db lowers the first character and add 's' at the end.
                 localField: "_id",
                 foreignField: "channel",
                 as: "subscribers"
             }
         },
+
+        // Get channels this user has subscribed to
         {
             $lookup: {
                 from: "subscriptions",
@@ -413,7 +420,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
                 },
                 isSubscribed: {
                     $cond: {
-                        if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+                        if: { $in: [req.user?._id, "$subscribers.subscriber"] }, // if the currently logged in user has subscribed to this profile
                         then: true,
                         else: false
                     }
