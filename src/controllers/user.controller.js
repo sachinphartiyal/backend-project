@@ -454,8 +454,10 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
 
 const getWatchHistory = asyncHandler(async (req, res) => {
     const user = await User.aggregate([
+        // filters the document to only include the current user.
         {
             $match: {
+                // converts _id=64f9c00d2a8d71e5a2a69e8c to ObjectId("64f9c00d2a8d71e5a2a69e8c")
                 _id: new mongoose.Types.ObjectId(req.user._id)
             }
         },
@@ -479,15 +481,18 @@ const getWatchHistory = asyncHandler(async (req, res) => {
                                         username: 1,
                                         avatar: 1
                                     }
-                                },
-                                {
-                                    $addFields: {
-                                        owner: {
-                                            $first: "$owner"
-                                        }
-                                    }
                                 }
                             ]
+                        }
+                    },
+
+                    // this flattens the owner array into a single object.
+                    // "owner":[{}] changes into "owner":{}
+                    {
+                        $addFields: {
+                            owner: {
+                                $first: "$owner"
+                            }
                         }
                     }
                 ]
